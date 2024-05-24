@@ -1,2 +1,2 @@
 # crumble_lab
-Tools for Dr. Rumble's lab at Penn State Altoona
+Tools for Chris Rumble's lab at Penn State Altoona
