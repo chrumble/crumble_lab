@@ -303,47 +303,6 @@ def calc_ngp(data):
     
     
     return ngp
-###########################
-# read a gromacs xvg file #
-###########################
-def read_xvg(filename):
-    ##############################
-    # class for holding the data #
-    ##############################
-    @dataclass
-    class xvgData:
-        x:       float = 0
-        y:       int   = 0
-        comment: int   = 0
-        names:   int   = 0
-        
-    data = xvgData()
-    data.comment = list()
-    data.names   = list()
-    data.x       = list()
-    data.y       = list()
-    
-    # parse line by line
-    with open(filename, 'r') as f:
-        for i,line in enumerate(f):
-            if line[0] == '#':
-                data.comment.append(line)
-            elif line.startswith('@'):
-                # ignore lines that don't have a legend label
-                if line.startswith('@ s'):
-                    data.names.append(line.split('"')[1])
-            else:
-                data.x.append(float(line.split()[0]))
-                data.y.append(line.split()[1:])
-
-        # convert the strings of the data into numbers
-        for l in range(len(data.x)):
-            data.y[l] = list(map(float, data.y[l]))
-
-    # convert the list to a numpy array
-    data.x = np.asarray(data.x)
-    data.y = np.asarray(data.y)
-    return data.x, data.y
 
 ###########################
 # read a gromacs xvg file #

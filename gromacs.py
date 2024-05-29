@@ -79,8 +79,9 @@ def gensub(sub, par, check=True, rerun=False, posres=False):
 
 
 # this is new, try to use it
-def read_xvg(filename):
+def read_xvg(filename, prog=False):
     import numpy as np
+    from tqdm import tqdm
 
     # build our dictionary
     data = dict()
@@ -90,30 +91,44 @@ def read_xvg(filename):
     data['y']       = list()
     
     # parse line by line
-    with open(filename, 'r') as f:
-        for i,line in enumerate(f):
-            if line[0] == '#':
-                data['comment'].append(line)
-            elif line.startswith('@'):
-                # ignore lines that don't have a legend label
-                if line.startswith('@ s'):
-                    data['names'].append(line.split('"')[1])
-            else:
-                data['x'].append(float(line.split()[0]))
-                data['y'].append(line.split()[1:])
-
-        # convert the strings of the data into numbers
-        for l in range(len(data['x'])):
-            data['y'][l] = list(map(float, data['y'][l]))
+    if prog:
+        with open(filename, 'r') as f:
+            for i, line in tqdm(enumerate(f)):
+                if line[0] == '#':
+                    data['comment'].append(line)
+                elif line.startswith('@'):
+                    # ignore lines that don't have a legend label
+                    if line.startswith('@ s'):
+                        data['names'].append(line.split('"')[1])
+                else:
+                    data['x'].append(float(line.split()[0]))
+                    data['y'].append(line.split()[1:])
+    
+            # convert the strings of the data into numbers
+            for l in range(len(data['x'])):
+                data['y'][l] = list(map(float, data['y'][l]))
+    else:
+        with open(filename, 'r') as f:
+            for i, line in enumerate(f):
+                if line[0] == '#':
+                    data['comment'].append(line)
+                elif line.startswith('@'):
+                    # ignore lines that don't have a legend label
+                    if line.startswith('@ s'):
+                        data['names'].append(line.split('"')[1])
+                else:
+                    data['x'].append(float(line.split()[0]))
+                    data['y'].append(line.split()[1:])
+    
+            # convert the strings of the data into numbers
+            for l in range(len(data['x'])):
+                data['y'][l] = list(map(float, data['y'][l]))
 
     # convert the list to a numpy array
     data['x'] = np.asarray(data['x'])
     data['y'] = np.asarray(data['y'])
     
-    # join x and y
-    out = np.hstack([np.reshape(data['x'], [len(data['x']), 1]),
-                     data['y']])
-    return out
+    return data['x'], data['y']
 
 def runsim(par, check=True, run=True, clust=False, clustpar=None, posres=False,
                 index=False):
@@ -273,7 +288,10 @@ def runsim(par, check=True, run=True, clust=False, clustpar=None, posres=False,
 # this is old, try not to use it
 def readxvg(filename):
     import numpy as np
-
+    import warnings
+    
+    warnings.warn('You should not use this version of readxvg, use read_xvg.')
+    
     # build our dictionary
     data = dict()
     data['comment'] = list()
