@@ -290,7 +290,7 @@ def readxvg(filename):
     import numpy as np
     import warnings
     
-    warnings.warn('You should not use this version of readxvg, use read_xvg.')
+    warnings.warn('This is an old version of readxvg with a non-intuitive output structure. In the future, you should use read_xvg.')
     
     # build our dictionary
     data = dict()
