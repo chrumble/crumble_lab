@@ -131,7 +131,7 @@ def read_xvg(filename, prog=False):
     return data['x'], data['y']
 
 def runsim(par, check=True, run=True, clust=False, clustpar=None, posres=False,
-                index=False):
+                index=False, nt=False):
     import os
     import subprocess
     import shutil
@@ -260,6 +260,10 @@ def runsim(par, check=True, run=True, clust=False, clustpar=None, posres=False,
         
         # add the mdrun stuff
         cmd.extend(['mdrun', '-v', '-deffnm', par['name']])
+
+        # optionally select the number of threads
+        if nt != False:
+           cmd.extend(['-nt', str(nt)]) 
         
         # specify the number of omp threads if on the cluster
         if clust:
