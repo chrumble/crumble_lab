@@ -43,8 +43,8 @@ ub    = list()
 fix   = list()
 
 # we need some names for the parameters
-exp1_names = ['h:', 'bkg:', 'tsft:', 'tau1:']
-exp2_names = ['h:', 'bkg:', 'tsft:', 'a1:', 'tau1:', 'tau2:']
+exp1_names = ['bkg:', 'tsft:', 'a1:', 'tau1:']
+exp2_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:']
 exp3_names = ['h:', 'bkg:', 'tsft:', 'a1:', 'tau1:',
                                      'a2:', 'tau2:',
                                      'a3:', 'tau3:']
@@ -72,9 +72,9 @@ def change_model(fit_function):
     # identify the model parameters and their defaults
     if   fit_function == '1-exp':
         par_names = exp1_names
-        ini_lb    = np.asarray([1,   -1e2, -1, 1e-4])
-        ini_guess = np.asarray([5e3,    0,  0, 1])
-        ini_ub    = np.asarray([1e5,  1e2,  1, 1e5])
+        ini_lb    = np.asarray([-1e2, -1, 1e0, 1e-3])
+        ini_guess = np.asarray([   0,  0, 5e3,    1])
+        ini_ub    = np.asarray([ 1e2,  1, 1e4,  1e5])
     elif fit_function == '2-exp':
         par_names = exp2_names
         ini_lb    = np.asarray([1,   -1e2, -1,  -1, 1e-4, 1e-4])
@@ -142,12 +142,12 @@ def conv_comp(par, x, x_irf, irf, data, fit_function):
 
     # build the fit
     if   fit_function == '1-exp':
-        h    = par[0]
-        bkg  = par[1]
-        tsft = par[2]
+        bkg  = par[0]
+        tsft = par[1]
+        a1   = par[2]
         tau1 = par[3]
 
-        fit = np.exp(-x/tau1)
+        fit = a1*np.exp(-x/tau1)
 
     elif fit_function == '2-exp':
         h    = par[0]
@@ -170,10 +170,10 @@ def conv_comp(par, x, x_irf, irf, data, fit_function):
         a3   = par[7]
         tau3 = par[8]
 
-        norm = a1 + a2 + a3
-        a1 = a1/norm
-        a2 = a2/norm
-        a3 = a3/norm
+#        norm = a1 + a2 + a3
+#        a1 = a1/norm
+#        a2 = a2/norm
+#        a3 = a3/norm
         par[3] = a1
         par[5] = a2
         par[7] = a3
@@ -283,12 +283,18 @@ class raw_spectra:
 
         # load the files into memory
         try:
-            self.t_fl_raw, self.wln_fl_raw, self.fl_raw = spc.read_dac(file_widgets[0].get())
+            if self.fl_filename.split('.')[-1] == 'dac':
+                self.t_fl_raw, self.wln_fl_raw, self.fl_raw = spc.read_dac(self.fl_filename)
+            elif self.fl_filename.split('.')[-1] == 'dat':
+                self.t_fl_raw, self.wln_fl_raw, self.fl_raw = spc.read_dat(self.fl_filename)
         except:
             messagebox.showinfo('Error', 'Could not load fluorescence file.')
             return
         try:
-            self.t_irf_raw, self.wln_irf_raw, self.irf_raw = spc.read_dac(file_widgets[1].get())
+            if self.irf_filename.split('.')[-1] == 'dac':
+                self.t_irf_raw, self.wln_irf_raw, self.irf_raw = spc.read_dac(self.irf_filename)
+            elif self.irf_filename.split('.')[-1] == 'dat':
+                self.t_irf_raw, self.wln_irf_raw, self.irf_raw = spc.read_dat(self.irf_filename)
         except:
             messagebox.showinfo('Error', 'Could not load IRF file.')
             return
@@ -306,9 +312,6 @@ class raw_spectra:
         file_widgets[1].insert(tk.END, filename)
 
     def plot_2D(self):
-        # check to see that the data exist already
-
-
         # take the two 2D spectra and plot them nicely
         data_window = tk.Toplevel()
         data_window.title(r'Data and IRF')
@@ -333,6 +336,14 @@ class raw_spectra:
         canvas.get_tk_widget().pack()
 
     def check_range(self):
+        # single trace data
+        self.fl_range  = np.zeros([2,2])
+        self.irf_range = np.zeros([2,2])
+        self.t_fl      = None
+        self.fl        = None
+        self.t_irf     = None
+        self.irf       = None
+
         # extract ranges from GUI
         try:
             self.fl_range[0,:] = np.asarray([float(range_widgets[0].get()),
@@ -394,7 +405,7 @@ class raw_spectra:
         ax  = fig.subplots(nrows=1, ncols=1)
         fig.subplots_adjust(top=0.975, bottom=0.125, right=0.95)
         ax.plot(self.t_fl, self.fl, label='Fluorescence')
-        ax.plot(self.t_irf, self.irf, label='IRF')
+        ax.plot(self.t_irf, self.irf, color='gray', label='IRF')
         ax.set_xlabel('Time / ns')
         ax.set_ylabel('Averaged Counts')
         ax.set_yscale('log')
@@ -458,7 +469,10 @@ class raw_spectra:
                 messagebox.showinfo('Input Error', 'A ub is not a number.')
                 return
 
-            if fix[i].state()[0] == 'selected':
+            print(fix[i].state())
+            if fix[i].state() == ():
+                res.fix[i] = 1
+            elif fix[i].state()[0] == 'selected':
                 res.fix[i] = 0
             else:
                 res.fix[i] = 1
@@ -531,7 +545,12 @@ class raw_spectra:
 
         # add chi_sq
         text.insert(tk.END, '\n{:>10} {:10.3f}\n\n'.format('chi_sq:', res.chi_sq))
-        text.insert(tk.END, 'h and bkg in counts, tsft and tau in ns')
+        text.insert(tk.END, 'h and bkg in counts, tsft and tau in ns\n\n')
+
+        # write out some easy to copy text
+        for i in range(n_par):
+            text.insert(tk.END, '{:10.3f}'.format(res.fitpar[i]))
+        text.insert(tk.END, '{:10.3f}'.format(res.chi_sq))
 
         # make the box un-editable
         text['state'] = 'disabled'
@@ -564,14 +583,14 @@ ttk.Button(frm_files, text='Quit', command=root.destroy).grid(row=0, column=4, p
 # fluorescence file (row=1, file_widgets[0])
 ttk.Label(frm_files, text='Fl. File:').grid(row=1, column=0)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/crumble_lab/cc_2D/c153_000cacl2_20ns_magic.dac')
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/emission/hand_fit/c153_2nsjc_magic.dac')
 file_widgets[-1].grid(row=1, column=1, columnspan=3, padx=5, sticky='EW')
 ttk.Button(frm_files, text='Select', command=data.get_fl_filename).grid(row=1, column=4, pady=5)
 
 # irf file (row=2, file_widgets[1])
 ttk.Label(frm_files, text='IRF File:').grid(row=2, column=0)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/crumble_lab/cc_2D/scatter_20ns_magic2.dac')
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/emission/hand_fit/ccwater_241205_2ns_magic.dac')
 file_widgets[-1].grid(row=2, column=1, columnspan=3, padx=5, sticky='EW')
 ttk.Button(frm_files, text='Select', command=data.get_irf_filename).grid(row=2, column=4, pady=5)
 
@@ -587,10 +606,10 @@ ttk.Label(frm_ranges, text='upper').grid(row=0, column=2, pady=5)
 # fl range wavelength (row=1, range_widgets[0,1])
 ttk.Label(frm_ranges, text='Fl. Wave. Range (nm):').grid(row=1, column=0, padx=5)
 range_widgets.append(ttk.Entry(frm_ranges))
-range_widgets[-1].insert(tk.END, '525')
+range_widgets[-1].insert(tk.END, '478')
 range_widgets[-1].grid(row=1, column=1, padx=5)
 range_widgets.append(ttk.Entry(frm_ranges))
-range_widgets[-1].insert(tk.END, '575')
+range_widgets[-1].insert(tk.END, '484')
 range_widgets[-1].grid(row=1, column=2, padx=5)
 
 # fl range time (row=2, range_widgets[2,3])
@@ -605,10 +624,10 @@ range_widgets[-1].grid(row=2, column=2, padx=5)
 # irf range wavelength (row=3, range_widgets[4,5])
 ttk.Label(frm_ranges, text='IRF Wave. Range (nm):').grid(row=3, column=0, padx=5)
 range_widgets.append(ttk.Entry(frm_ranges))
-range_widgets[-1].insert(tk.END, '418')
+range_widgets[-1].insert(tk.END, '420')
 range_widgets[-1].grid(row=3, column=1, padx=5)
 range_widgets.append(ttk.Entry(frm_ranges))
-range_widgets[-1].insert(tk.END, '422')
+range_widgets[-1].insert(tk.END, '430')
 range_widgets[-1].grid(row=3, column=2, padx=5)
 
 # fl range time (row=4, range_widgets[6,7])
@@ -617,7 +636,7 @@ range_widgets.append(ttk.Entry(frm_ranges))
 range_widgets[-1].insert(tk.END, '0')
 range_widgets[-1].grid(row=4, column=1, padx=5)
 range_widgets.append(ttk.Entry(frm_ranges))
-range_widgets[-1].insert(tk.END, '5')
+range_widgets[-1].insert(tk.END, '0.23')
 range_widgets[-1].grid(row=4, column=2, padx=5)
 
 # fit function selector (row=5)
