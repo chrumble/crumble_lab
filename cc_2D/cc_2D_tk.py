@@ -45,12 +45,9 @@ fix   = list()
 # we need some names for the parameters
 exp1_names = ['bkg:', 'tsft:', 'a1:', 'tau1:']
 exp2_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:']
-exp3_names = ['h:', 'bkg:', 'tsft:', 'a1:', 'tau1:',
-                                     'a2:', 'tau2:',
-                                     'a3:', 'tau3:']
+exp3_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:', 'a3:', 'tau3:']
 str1_names = ['h:', 'bkg:', 'tsft:', 'tau1:', 'beta1:']
-str2_names = ['h:', 'bkg:', 'tsft:', 'a1:', 'tau1:', 'beta1:',
-                                            'tau2:', 'beta2:']
+str2_names = ['h:', 'bkg:', 'tsft:', 'a1:', 'tau1:', 'beta1:', 'tau2:', 'beta2:']
 
 ###############################################################################
 #                       GUI and Fitting Functions                             #
@@ -76,15 +73,15 @@ def change_model(fit_function):
         ini_guess = np.asarray([   0,  0, 5e3,    1])
         ini_ub    = np.asarray([ 1e2,  1, 1e4,  1e5])
     elif fit_function == '2-exp':
-        par_names = exp2_names
-        ini_lb    = np.asarray([1,   -1e2, -1,  -1, 1e-4, 1e-4])
-        ini_guess = np.asarray([5e3,    0,  0, 0.5, 0.5,  1])
-        ini_ub    = np.asarray([1e5,  1e2,  1,   1, 1e5,  1e5])
+        par_names = exp2_names 
+        ini_lb    = np.asarray([-1e2, -1e0, -1e4, 1e-3, -1e4, 1e-3])
+        ini_guess = np.asarray([   0,    0,  5e2,  0.5,  1e2,    4])
+        ini_ub    = np.asarray([ 1e2,  1e0,  1e4,  1e2,  1e4,  1e2])
     elif fit_function == '3-exp':
         par_names = exp3_names
-        ini_lb    = np.asarray([1,   -1e2, -1,  -1, 1e-4, -1, 1e-4, -1,   1e-4])
-        ini_guess = np.asarray([5e3,    0,  0, 0.5, 1,   0.5, 10,    0.5, 50])
-        ini_ub    = np.asarray([1e5,  1e2,  1,   1, 1e5,   1, 1e5,   1,   1e5])
+        ini_lb    = np.asarray([-1e2, -1e0, -1e4, 1e-3,  -1e4, 1e-3, 1e-4, 1e-3])
+        ini_guess = np.asarray([   0,    0,  5e2,  0.1,   1e2,  0.5,  1e2,    4])
+        ini_ub    = np.asarray([ 1e2,  1e0,  1e4,  1e2,   1e4,  1e2,  1e4,  1e2])
     elif fit_function == '1-str':
         par_names = str1_names
         ini_lb    = np.asarray([1,   -1e2, -1, 1e-4, 0])
@@ -146,37 +143,31 @@ def conv_comp(par, x, x_irf, irf, data, fit_function):
         tsft = par[1]
         a1   = par[2]
         tau1 = par[3]
+        h    = a1
 
         fit = a1*np.exp(-x/tau1)
 
     elif fit_function == '2-exp':
-        h    = par[0]
-        bkg  = par[1]
-        tsft = par[2]
-        a1   = par[3]
-        tau1 = par[4]
+        bkg  = par[0]
+        tsft = par[1]
+        a1   = par[2]
+        tau1 = par[3]
+        a2   = par[4]
         tau2 = par[5]
+        h    = a1 + a2
 
-        fit = a1*np.exp(-x/tau1) + (1-a1)*np.exp(-x/tau2)
+        fit = a1*np.exp(-x/tau1) + a2*np.exp(-x/tau2)
 
     elif fit_function == '3-exp':
-        h    = par[0]
-        bkg  = par[1]
-        tsft = par[2]
-        a1   = par[3]
-        tau1 = par[4]
-        a2   = par[5]
-        tau2 = par[6]
-        a3   = par[7]
-        tau3 = par[8]
-
-#        norm = a1 + a2 + a3
-#        a1 = a1/norm
-#        a2 = a2/norm
-#        a3 = a3/norm
-        par[3] = a1
-        par[5] = a2
-        par[7] = a3
+        bkg  = par[0]
+        tsft = par[1]
+        a1   = par[2]
+        tau1 = par[3]
+        a2   = par[4]
+        tau2 = par[5]
+        a3   = par[6]
+        tau3 = par[7]
+        h    = a1 + a2 + a3
 
         fit = (a1*np.exp(-x/tau1) +
                a2*np.exp(-x/tau2) +
@@ -529,28 +520,27 @@ class raw_spectra:
         # output the fit parameters
         text.insert(tk.END, '%s fit results:\n\n' % res.fit_function)
         if res.fit_function == '1-exp':
-            text.insert(tk.END, 'I(t) = h*exp(-t/tau1) + bkg (and tsft)\n\n')
+            text.insert(tk.END, 'I(t) = a1*exp(-t/tau1) + bkg (and tsft)\n\n')
         elif res.fit_function == '2-exp':
-            text.insert(tk.END, 'I(t) = h[a1*exp(-t/tau1) + (1-a1)*exp(-t/tau2)] + bkg (and tsft)\n\n')
+            text.insert(tk.END, 'I(t) = a1*exp(-t/tau1) + a2*exp(-t/tau2) + bkg (and tsft)\n\n')
         elif res.fit_function == '3-exp':
-            text.insert(tk.END, 'I(t) = h[a1*exp(-t/tau1) + a2*exp(-t/tau2) + a3*exp(-t/tau3)] + bkg (and tsft)\n')
-            text.insert(tk.END, 'a1 + a2 + a3 = 1\n\n')
+            text.insert(tk.END, 'I(t) = a1*exp(-t/tau1) + a2*exp(-t/tau2) + a3*exp(-t/tau3)] + bkg (and tsft)\n\n')
         elif res.fit_function == '1-str':
-            text.insert(tk.END, 'I(t) = h*exp(-[t/tau1]**beta1) + bkg (and tsft)\n\n')
+            text.insert(tk.END, 'I(t) = a1*exp(-[t/tau1]**beta1) + bkg (and tsft)\n\n')
         elif res.fit_function == '2-str':
-            text.insert(tk.END, 'I(t) = h*[a1*exp(-[t/tau1]**beta1) + (1-a1)*exp(-[t/tau2]**beta2)] + bkg (and tsft)\n\n')
+            text.insert(tk.END, 'I(t) = a1*exp(-[t/tau1]**beta1) + a2*exp(-[t/tau2]**beta2)] + bkg (and tsft)\n\n')
 
         for i in range(n_par):
             text.insert(tk.END, '{:>10} {:10.3f}\n'.format(res.par_names[i], res.fitpar[i]))
 
         # add chi_sq
         text.insert(tk.END, '\n{:>10} {:10.3f}\n\n'.format('chi_sq:', res.chi_sq))
-        text.insert(tk.END, 'h and bkg in counts, tsft and tau in ns\n\n')
+        text.insert(tk.END, 'amplitudes, height, and bkg in counts, tsft and tau in ns\n\n')
 
         # write out some easy to copy text
         for i in range(n_par):
-            text.insert(tk.END, '{:10.3f}'.format(res.fitpar[i]))
-        text.insert(tk.END, '{:10.3f}'.format(res.chi_sq))
+            text.insert(tk.END, '{:<10.3f}'.format(res.fitpar[i]))
+        text.insert(tk.END, '{:<10.3f}'.format(res.chi_sq))
 
         # make the box un-editable
         text['state'] = 'disabled'
@@ -583,14 +573,14 @@ ttk.Button(frm_files, text='Quit', command=root.destroy).grid(row=0, column=4, p
 # fluorescence file (row=1, file_widgets[0])
 ttk.Label(frm_files, text='Fl. File:').grid(row=1, column=0)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/emission/hand_fit/c153_2nsjc_magic.dac')
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/emission/heitz/hand_fit/c153_2nsjc_magic.dac')
 file_widgets[-1].grid(row=1, column=1, columnspan=3, padx=5, sticky='EW')
 ttk.Button(frm_files, text='Select', command=data.get_fl_filename).grid(row=1, column=4, pady=5)
 
 # irf file (row=2, file_widgets[1])
 ttk.Label(frm_files, text='IRF File:').grid(row=2, column=0)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/emission/hand_fit/ccwater_241205_2ns_magic.dac')
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/emission/heitz/hand_fit/ccwater_241205_2ns_magic.dac')
 file_widgets[-1].grid(row=2, column=1, columnspan=3, padx=5, sticky='EW')
 ttk.Button(frm_files, text='Select', command=data.get_irf_filename).grid(row=2, column=4, pady=5)
 
