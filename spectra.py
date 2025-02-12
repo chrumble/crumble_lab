@@ -8,6 +8,25 @@
 import numpy as np
 import re
 
+##########################
+# thinning in wavelength #
+##########################
+def thin(si, wi, n_thin):
+    n_wi   = len(wi)
+    n_ti   = len(si[0,:])
+    n_wf   = int((n_wi - np.remainder(n_wi, n_thin))/n_thin)
+    wf     = np.zeros(n_wf)
+    ind_0  = 0
+    ind_1  = n_thin
+    s_thin = np.zeros([n_wf, n_ti])
+    for i in range(n_wf):
+        wf[i]       = np.mean(wi[ind_0:ind_1])
+        s_thin[i,:] = np.sum(si[ind_0:ind_1, :], axis=0)
+        
+        ind_0 = ind_0 + n_thin
+        ind_1 = ind_1 + n_thin
+    return s_thin, wf
+    
 ##############################
 # smooth with moving average #
 ##############################
@@ -134,6 +153,26 @@ def baseline(x, y, ends):
     if np.shape(y)[1] == 1:
         y = np.reshape(y, len(y))
         
+    return y
+
+###################################
+# area normalize a set of spectra #
+###################################
+def nrm_area(y, x=None):
+    # prepare some things
+    y, n = check_dim(y)
+    num_pts = len(y[:,0])
+    nrm     = np.zeros(n)
+    if n == 1:
+        y = np.reshape(y, [num_pts, 1])
+
+
+    for i in range(n)    :
+        nrm[i] = np.trapz(x=x, y=y[:,i])
+        y[:,i] = y[:,i]/nrm[i]
+        
+    if n == 1:
+        y = np.squeeze(y)
     return y
 
 ###################################
@@ -280,9 +319,15 @@ def read_dac(filename):
     for i in range(n-1):
         t[i]      = np.asarray(raw[i+1][0], dtype='float64')
         data[:,i] = np.asarray(raw[i+1][1:], dtype='float64')
-        
     
-    return t, wln, data
+    if raw[0][0].split('|')[0] == 'ps':
+        t = t/1000    
+    out = list()
+    out.append(t)
+    out.append(wln)
+    out.append(data)
+    
+    return out
 
 
 

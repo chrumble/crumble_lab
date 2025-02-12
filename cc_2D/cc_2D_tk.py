@@ -46,8 +46,8 @@ fix   = list()
 exp1_names = ['bkg:', 'tsft:', 'a1:', 'tau1:']
 exp2_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:']
 exp3_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:', 'a3:', 'tau3:']
-str1_names = ['h:', 'bkg:', 'tsft:', 'tau1:', 'beta1:']
-str2_names = ['h:', 'bkg:', 'tsft:', 'a1:', 'tau1:', 'beta1:', 'tau2:', 'beta2:']
+str1_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'beta1:']
+str2_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'beta1:', 'a1', 'tau2:', 'beta2:']
 
 ###############################################################################
 #                       GUI and Fitting Functions                             #
@@ -69,29 +69,30 @@ def change_model(fit_function):
     # identify the model parameters and their defaults
     if   fit_function == '1-exp':
         par_names = exp1_names
-        ini_lb    = np.asarray([-1e2, -1, 1e0, 1e-3])
-        ini_guess = np.asarray([   0,  0, 5e3,    1])
         ini_ub    = np.asarray([ 1e2,  1, 1e4,  1e5])
+        ini_guess = np.asarray([   0,  0, 5e3,    1])
+        ini_lb    = np.asarray([-1e2, -1, 1e0, 1e-3])
     elif fit_function == '2-exp':
         par_names = exp2_names 
-        ini_lb    = np.asarray([-1e2, -1e0, -1e4, 1e-3, -1e4, 1e-3])
-        ini_guess = np.asarray([   0,    0,  5e2,  0.5,  1e2,    4])
         ini_ub    = np.asarray([ 1e2,  1e0,  1e4,  1e2,  1e4,  1e2])
+        ini_guess = np.asarray([   0,    0,  5e2,  0.5,  1e2,    4])
+        ini_lb    = np.asarray([-1e2, -1e0, -1e4, 1e-3, -1e4, 1e-3])
     elif fit_function == '3-exp':
         par_names = exp3_names
-        ini_lb    = np.asarray([-1e2, -1e0, -1e4, 1e-3,  -1e4, 1e-3, 1e-4, 1e-3])
-        ini_guess = np.asarray([   0,    0,  5e2,  0.1,   1e2,  0.5,  1e2,    4])
         ini_ub    = np.asarray([ 1e2,  1e0,  1e4,  1e2,   1e4,  1e2,  1e4,  1e2])
+        ini_guess = np.asarray([   0,    0,  5e2,  0.1,   1e2,  0.5,  1e2,    4])
+        ini_lb    = np.asarray([-1e2, -1e0, -1e4, 1e-3,  -1e4, 1e-3, 1e-4, 1e-3])
     elif fit_function == '1-str':
         par_names = str1_names
-        ini_lb    = np.asarray([1,   -1e2, -1, 1e-4, 0])
-        ini_guess = np.asarray([5e3,    0,  0, 1,    0.7])
-        ini_ub    = np.asarray([1e5,  1e2,  1, 1e5,  1])
+        ini_ub    = np.asarray([ 1e2,  1, 1e5,  1e5,   1])
+        ini_guess = np.asarray([   0,  0, 5e3,    1, 0.7])
+        ini_lb    = np.asarray([-1e2, -1,   1, 1e-4,   0])
     elif fit_function == '2-str':
         par_names = str2_names
-        ini_lb    = np.asarray([1,   -1e2, -1,  -1, 1e-4, 0,   1e-4, 0])
-        ini_guess = np.asarray([5e3,    0,  0, 0.5, 0.5,  0.7, 1,    0.7])
-        ini_ub    = np.asarray([1e5,  1e2,  1,   1, 1e5,  1,   1e5,  1])
+                               # bkg, tsft,   a1, tau1, beta1, a2, tau2, beta2
+        ini_ub    = np.asarray([ 1e2,    1,  1e5,  1e2,    1,  1e5,   1e2,   1])
+        ini_guess = np.asarray([   0,    0,  1e3,  0.1,    1,  5e2,     2, 0.7])
+        ini_lb    = np.asarray([-1e2,   -1, -1e5, 1e-3, 1e-4, -1e5,  1e-3,   0])
     n_par = len(par_names)
 
     # build the parameter widgets
@@ -174,23 +175,25 @@ def conv_comp(par, x, x_irf, irf, data, fit_function):
                a3*np.exp(-x/tau3))
 
     elif fit_function == '1-str':
-        h     = par[0]
-        bkg   = par[1]
-        tsft  = par[2]
+        bkg   = par[0]
+        tsft  = par[1]
+        a1    = par[2]
         tau1  = par[3]
         beta1 = par[4]
+        h     = a1
 
         fit = np.exp(-(x/tau1)**beta1)
 
     elif fit_function == '2-str':
-        h     = par[0]
-        bkg   = par[1]
-        tsft  = par[2]
-        a1    = par[3]
-        tau1  = par[4]
-        beta1 = par[5]
+        bkg   = par[0]
+        tsft  = par[1]
+        a1    = par[2]
+        tau1  = par[3]
+        beta1 = par[4]
+        a2    = par[5]
         tau2  = par[6]
         beta2 = par[7]
+        h     = a1 + a2
 
         fit = a1*np.exp(-(x/tau1)**beta1) + (1-a1)*np.exp(-(x/tau2)**beta2)
 
@@ -326,7 +329,7 @@ class raw_spectra:
         NavigationToolbar2Tk(canvas, data_window).update()
         canvas.get_tk_widget().pack()
 
-    def check_range(self):
+    def trim(self):
         # single trace data
         self.fl_range  = np.zeros([2,2])
         self.irf_range = np.zeros([2,2])
@@ -387,6 +390,10 @@ class raw_spectra:
         self.irf     = self.irf_raw[self.irf_range[0,0]:self.irf_range[0,1],
                                     self.irf_range[1,0]:self.irf_range[1,1]].sum(axis=0)
 
+    def check_range(self):
+        # trim the data first
+        self.trim()
+
         # plot the traces
         trace_window = tk.Toplevel()
         trace_window.title(r'Averaged Data and IRF')
@@ -410,6 +417,9 @@ class raw_spectra:
         canvas.get_tk_widget().pack()
 
     def perform_fit(self):
+        # update the trim
+        self.trim()
+
         # make a fit data object
         res = ft.FitData()
 
@@ -528,14 +538,14 @@ class raw_spectra:
         elif res.fit_function == '1-str':
             text.insert(tk.END, 'I(t) = a1*exp(-[t/tau1]**beta1) + bkg (and tsft)\n\n')
         elif res.fit_function == '2-str':
-            text.insert(tk.END, 'I(t) = a1*exp(-[t/tau1]**beta1) + a2*exp(-[t/tau2]**beta2)] + bkg (and tsft)\n\n')
+            text.insert(tk.END, 'I(t) = a1*exp(-[t/tau1]**beta1) + a2*exp(-[t/tau2]**beta2) + bkg (and tsft)\n\n')
 
         for i in range(n_par):
             text.insert(tk.END, '{:>10} {:10.3f}\n'.format(res.par_names[i], res.fitpar[i]))
 
         # add chi_sq
         text.insert(tk.END, '\n{:>10} {:10.3f}\n\n'.format('chi_sq:', res.chi_sq))
-        text.insert(tk.END, 'amplitudes, height, and bkg in counts, tsft and tau in ns\n\n')
+        text.insert(tk.END, 'amplitudes, and bkg in counts, tsft and tau in ns\n\n')
 
         # write out some easy to copy text
         for i in range(n_par):

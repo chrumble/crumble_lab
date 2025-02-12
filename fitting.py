@@ -34,6 +34,22 @@ class FitData:
 ##############
 # linear fit #
 ##############
+def fit_polarizer(res):
+    # assign the linear model
+    res.f = polarizer
+    
+    # perform the fit
+    res = fit_base(res)
+    
+    return res
+
+def polarizer(par, x):
+    polar = par[0]*np.sin(par[1]*x + par[2]) + par[3]
+    return polar
+
+##############
+# linear fit #
+##############
 def fit_line(res):
     # assign the linear model
     res.f = line
@@ -73,7 +89,7 @@ def fit_exp(res: FitData):
     print('---------------------------------------------------------------------------------')
     print('%9s%9s%9s%9s%9s%9s%9s%9s%9s' % tuple(varnames))
     for i in range(res.n_fit):
-        print('%9.3f%9.3f%9.3f%9.3f%9.3f%9.2f%9.3f%9.2f%9.3f' % 
+        print('%9.3e%9.3e%9.3e%9.3e%9.3e%9.2e%9.3e%9.2e%9.3e' % 
               (*res.fitpar[i,:], res.tau_int[i]))
     print('---------------------------------------------------------------------------------')
     print('Fix:%5d%9d%9d%9d%9d %9d %9d %9d'% tuple(res.fix))
@@ -289,7 +305,7 @@ def reorg_model(par, x):
 ###################################
 # fits a guassian with unit area
 def fit_gauss_nrm(res):
-    # assign the reorg model
+    # assign the model
     res.f = gauss_a_nrm
     
     # perform the fit
@@ -307,7 +323,7 @@ def gauss_a_nrm(par, x):
 ####################################
 # fits a guassian with unit area
 def fit_two_gauss(res):
-    # assign the reorg model
+    # assign the model
     res.f = two_gauss
     
     # perform the fit
@@ -315,7 +331,7 @@ def fit_two_gauss(res):
     
     return res
 
-def gauss_h_nrm(par,x):
+def gauss_h_nrm(par, x):
     gauss = np.exp(-(x-par[2])**2/(2*par[1]**2))
     gauss = par[0]*gauss/np.max(gauss)
     

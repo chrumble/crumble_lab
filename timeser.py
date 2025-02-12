@@ -16,12 +16,12 @@ import warnings
 def calc_pdist(data, endpoints, nbins):
     edges = np.linspace(endpoints[0], endpoints[1], nbins+1)
     bins  = (edges[:-1] + edges[1:])/2
-    n     = np.shape(data)[0]
-    if len(np.shape(data)) > 1:
+    n     = np.size(np.shape(data))
+    if n > 1:
         dist  = np.zeros([nbins, n])
         for i in range(n):
             dist[:,i] = np.histogram(data[:,i], bins=edges, density=True)[0]
-    elif len(np.shape(data)) == 1:
+    elif n == 1:
         dist = np.histogram(data, bins=edges, density=True)[0]
     else:
         print('I don''t know how to handle these data.')
@@ -121,9 +121,23 @@ def read_tensor(filename):
 
     return V, t
 
+def read_tensor_unique(filename):
+    # note that this is for Yann's data format
+    raw = np.loadtxt(filename, skiprows=0)
+    t   = raw[:,0]
+    t   = t[range(0, len(t), 3)]/100
+    V   = np.zeros([len(t), 9])
+    for i in range(len(t)):
+        V[i,:] = np.reshape(raw[3*i:3*i+3, 1:], 9)
+
+    V = V[:,[0,1,2,4,5,8]]
+    return V, t
+
 def write_tensor(filename, efg):
     f = open(filename, 'w')
-    n_frames = len(efg[:,0,0])/3
+    # n_frames = len(efg[:,0,0])/3
+    n_frames = len(efg[:,0,0])
+
     for i in range(n_frames):
         for j in range(3):
             f.write('%15d\t%15E\t%15E\t%15E\n' % (i, 

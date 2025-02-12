@@ -34,27 +34,27 @@ def gensub(sub, par, check=True, rerun=False, posres=False):
                               + str('%02d' % sub['time']['hour'])
                               + ':'
                               + str('%02d' % sub['time']['min']) + ':00\n')
-    f.write('#SBATCH --partition=' + sub['partition'] + '\n')
-    f.write('#SBATCH --extra-node-info=2:8\n')
+    f.write('#SBATCH --partition=open\n')
+    f.write('#SBATCH --account=open\n')
     f.write('\n')
     
     # load appropriate modules
-    f.write('module load icc/2017.1.132-GCC-6.3.0-2.27  impi/2017.1.132\n')
-    f.write('module load GCC/4.9.3-2.25\n')
-    f.write('module load OpenMPI/1.10.2\n')
+    f.write('module load cmake\n')
+    f.write('module load gcc\n')
+    f.write('module load mpi/latest\n')
 
-
+    f.write('source /storage/home/car335/work/install/gromacs/bin/GMXRC\n')
     f.write('\n')
     
     # GROMACS build simulation commands
     if check:
-        cmd = ['srun', 'gmx_mpi', 'grompp',
+        cmd = ['gmx_mpi', 'grompp',
                '-f', './ini/' + os.path.basename(par['runpar']),
                '-c', './ini/' + os.path.basename(par['box']),
                '-p', './ini/' + os.path.basename(par['topol']),
                '-o', par['name']]
     else:
-        cmd = ['srun', 'gmx_mpi', 'grompp',
+        cmd = ['gmx_mpi', 'grompp',
                '-f', './ini/' + os.path.basename(par['runpar']),
                '-c', './ini/' + os.path.basename(par['box']),
                '-p', './ini/' + os.path.basename(par['topol']),
