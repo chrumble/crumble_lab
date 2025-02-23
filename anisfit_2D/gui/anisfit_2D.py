@@ -23,7 +23,7 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
 ###############################################################################
 # create the main window
 root = tk.Tk()
-root.title('2D Convolute-and-Compare Fitter')
+root.title('2D Anisotropy Fitter')
 root.geometry('500x500')
 
 # frames go inside windows
@@ -43,11 +43,12 @@ ub    = list()
 fix   = list()
 
 # we need some names for the parameters
-exp1_names = ['bkg:', 'tsft:', 'a1:', 'tau1:']
-exp2_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:']
-exp3_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:', 'a3:', 'tau3:']
-str1_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'beta1:']
-str2_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'beta1:', 'a1', 'tau2:', 'beta2:']
+exp1_names = ['bkg:',  'ts_mag:', 'ts_par:', 'ts_perp:',  'a1:',  'tau1:']
+exp2_names = ['bkg:',  'ts_mag:', 'ts_par:', 'ts_perp:',  'a1:',  'tau1:', 'a2:', 'tau2:']
+exp3_names = ['bkg:',  'ts_mag:', 'ts_par:', 'ts_perp:',  'a1:',  'tau1:', 'a2:', 'tau2:', 'a3:', 'tau3:']
+str1_names = ['bkg:',  'ts_mag:', 'ts_par:', 'ts_perp:',  'a1:',  'tau1:', 'beta1:']
+str2_names = ['bkg:',  'ts_mag:', 'ts_par:', 'ts_perp:',  'a1:',  'tau1:', 'beta1:', 'a1', 'tau2:', 'beta2:']
+aexp_names = ['ra1:',   'rtau1:',    'ra2:',   'rtau2:', 'ra3:', 'rtau3:']
 
 ###############################################################################
 #                       GUI and Fitting Functions                             #
@@ -291,7 +292,7 @@ class raw_spectra:
 
         messagebox.showinfo('Success', 'Data files successfully loaded.')
 
-    def get_fl_filename(self):
+    def get_mag_filename(self):
         filename = filedialog.askopenfilename()
         file_widgets[0].delete(0, tk.END)
         file_widgets[0].insert(tk.END, filename)
@@ -572,17 +573,31 @@ ttk.Button(frm_files, text='Check Range', command=data.check_range).grid(row=0, 
 ttk.Button(frm_files, text='Fit', command=data.perform_fit).grid(row=0, column=3, padx=5)
 ttk.Button(frm_files, text='Quit', command=root.destroy).grid(row=0, column=4, padx=5)
 
-# fluorescence file (row=1, file_widgets[0])
-ttk.Label(frm_files, text='Fl. File:').grid(row=1, column=0)
+# mag file (row=1, file_widgets[0])
+ttk.Label(frm_files, text='Mag. File:').grid(row=1, column=0)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/emission/heitz/hand_fit/c153_2nsjc_magic.dac')
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/crumble_lab/anisfit_2D/c153_x00glymeoh_2nsjc_magic.dac')
 file_widgets[-1].grid(row=1, column=1, columnspan=3, padx=5, sticky='EW')
 ttk.Button(frm_files, text='Select', command=data.get_fl_filename).grid(row=1, column=4, pady=5)
 
-# irf file (row=2, file_widgets[1])
-ttk.Label(frm_files, text='IRF File:').grid(row=2, column=0)
+# par file (row=2, file_widgets[1])
+ttk.Label(frm_files, text='Par. File:').grid(row=2, column=0)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/emission/heitz/hand_fit/ccwater_241205_2ns_magic.dac')
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/crumble_lab/anisfit_2D/cc153_x00glymeoh_2nsjc_para.dac')
+file_widgets[-1].grid(row=1, column=1, columnspan=3, padx=5, sticky='EW')
+ttk.Button(frm_files, text='Select', command=data.get_fl_filename).grid(row=1, column=4, pady=5)
+
+# per file (row=2, file_widgets[2])
+ttk.Label(frm_files, text='Per. File:').grid(row=3, column=0)
+file_widgets.append(ttk.Entry(frm_files))
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/crumble_lab/anisfit_2D/c153_x00glymeoh_2nsjc_perp.dac')
+file_widgets[-1].grid(row=1, column=1, columnspan=3, padx=5, sticky='EW')
+ttk.Button(frm_files, text='Select', command=data.get_fl_filename).grid(row=1, column=4, pady=5)
+
+# irf file (row=2, file_widgets[3])
+ttk.Label(frm_files, text='IRF File:').grid(row=4, column=0)
+file_widgets.append(ttk.Entry(frm_files))
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/crumble_lab/anisfit_2D/ccwater_2nsjc_magic.dac')
 file_widgets[-1].grid(row=2, column=1, columnspan=3, padx=5, sticky='EW')
 ttk.Button(frm_files, text='Select', command=data.get_irf_filename).grid(row=2, column=4, pady=5)
 

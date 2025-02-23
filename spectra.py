@@ -8,6 +8,25 @@
 import numpy as np
 import re
 
+###################################
+# find a fwhm from the global max #
+###################################
+def fwhm(x, sig):
+    # normalize and find peak
+    sig = sig/sig.max()
+    ind = sig.argmax()
+    
+    # find the 0.5 points on either side of max
+    left  = closest(0.5, sig[0:ind])
+    right = closest(0.5, sig[ind:])
+    
+    fwhm = x[right] - x[left]
+    
+    print(x[right])
+    print(x[left])
+    
+    return fwhm
+
 ##########################
 # thinning in wavelength #
 ##########################
@@ -178,7 +197,8 @@ def nrm_area(y, x=None):
 ###################################
 # peak normalize a set of spectra #
 ###################################
-def nrm_peak(y, x=None, ends=False, together=False, width=4, nrm_return=False):
+def nrm_peak(y, x=None, ends=False, together=False, width=4, nrm_return=False,
+             ind_return=False):
     # prepare some things
     y, n = check_dim(y)
     num_pts = len(y[:,0])
@@ -235,6 +255,8 @@ def nrm_peak(y, x=None, ends=False, together=False, width=4, nrm_return=False):
     if np.shape(y)[1] == 1:
         y = np.reshape(y, len(y))
         
+    if ind_return:
+        return y, ind
     if nrm_return:
         return y, nrm
     else:

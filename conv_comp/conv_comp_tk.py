@@ -72,9 +72,8 @@ def conv_comp(par, irf, x, data, fit_function):
         tsft = par[1]
         a1   = par[2]
         tau1 = par[3]
-        h    = a1
         
-        fit = np.exp(-x/tau1)
+        fit = a1*np.exp(-x/tau1)
         
     elif fit_function == '2-exp':
         bkg  = par[0]
@@ -83,7 +82,6 @@ def conv_comp(par, irf, x, data, fit_function):
         tau1 = par[3]
         a2   = par[4]
         tau2 = par[5]
-        h    = a1 + a2
 
         fit = a1*np.exp(-x/tau1) + a2*np.exp(-x/tau2)
 
@@ -96,7 +94,6 @@ def conv_comp(par, irf, x, data, fit_function):
         tau2 = par[5]
         a3   = par[6]
         tau3 = par[7]
-        h    = a1 + a2 + a3
 
         fit = (a1*np.exp(-x/tau1) +
                a2*np.exp(-x/tau2) +
@@ -124,11 +121,9 @@ def conv_comp(par, irf, x, data, fit_function):
         fit = np.exp(-(x/tau1)**beta1) + np.exp(-(x/tau2)**beta2)
 
     # convolute with the irf
+    irf = irf/np.trapz(irf)
     fit = np.convolve(irf, fit, mode='full')
-    fit = fit[:len(data)]
-    
-    # set height and bkg
-    fit = fit/fit.max()*h + bkg
+    fit = fit[:len(data)] + bkg
     
     # apply the time-shift
     fit = np.interp(x - tsft, x, fit) 
@@ -236,29 +231,29 @@ def change_model(fit_function):
                                # bkg, tsft,  a1, tau1
         ini_ub    = np.asarray([ 1e2,    1,  1e5,  1e3])
         ini_guess = np.asarray([   1,    0,  5e3,    1])
-        ini_lb    = np.asarray([   0,   -1, -1e5, 1e-4])
+        ini_lb    = np.asarray([   0,   -1, -1e5, 1e-3])
     elif fit_function == '2-exp':
         par_names = exp2_names
                                # bkg, tsft,   a1, tau1,   a2, tau2
         ini_ub    = np.asarray([ 1e2,    1,  1e5,  1e3,  1e5,  1e3])
         ini_guess = np.asarray([   1,    0,  1e3,  0.1,  5e3,    1])
-        ini_lb    = np.asarray([   0,   -1, -1e5, 1e-4, -1e5, 1e-4])
+        ini_lb    = np.asarray([   0,   -1, -1e5, 1e-3, -1e5, 1e-3])
     elif fit_function == '3-exp':
         par_names = exp3_names
                                # bkg, tsft,   a1, tau1,   a2, tau2,   a3, tau3
         ini_ub    = np.asarray([ 1e2,    1,  1e5,  1e3,  1e5,  1e3,  1e5,  1e3])
         ini_guess = np.asarray([   1,    0,  5e2,  0.1,  1e3,    1,  5e3,    5])
-        ini_lb    = np.asarray([   0,   -1, -1e5, 1e-4, -1e5, 1e-4, -1e5, 1e-4])
+        ini_lb    = np.asarray([   0,   -1, -1e5, 1e-3, -1e5, 1e-3, -1e5, 1e-3])
     elif fit_function == '1-str':
         par_names = str1_names
         ini_ub    = np.asarray([1e5,  1e2,  1, 1e5,  1])
         ini_guess = np.asarray([5e3,    0,  0, 1,    0.7])
-        ini_lb    = np.asarray([1,   -1e2, -1, 1e-4, 0])
+        ini_lb    = np.asarray([1,   -1e2, -1, 1e-3, 0])
     elif fit_function == '2-str':
         par_names = str2_names
         ini_ub    = np.asarray([1e5,  1e2,  1,   1, 1e5,  1,     1, 1e5,  1])
         ini_guess = np.asarray([5e3,    0,  0, 0.5, 1,    0.7, 0.5, 1,    0.7])
-        ini_lb    = np.asarray([1,   -1e2, -1,  -1, 1e-4, 0,    -1, 1e-4, 0])
+        ini_lb    = np.asarray([1,   -1e2, -1,  -1, 1e-3, 0,    -1, 1e-3, 0])
     n_par = len(par_names)
     
     # build the parameter widgets
