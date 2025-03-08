@@ -30,10 +30,41 @@ class FitData:
     tau_int: float = 0
     n_fit:   int   = 0
     weight:  bool  = False
+    
+##########################
+# lognormal spectrum fitter #
+##########################
+# fit a trace to the sum of a log-normal decay and stretched exponential
+def fit_lognorm(res):
+    # assign the exponential model
+    res.f = lognorm
+    
+    # perform the fit
+    res = fit_base(res)
 
-##############
-# linear fit #
-##############
+    return res
+
+def lognorm(par, x):
+    h     = par[0]
+    peak  = par[1]
+    fwhm  = par[2]
+    gamma = par[3]
+    delta = gamma*fwhm/np.sinh(gamma)
+    alpha = 2*gamma*(x-peak)/delta
+    
+    # build the lognorm
+    lognorm = np.zeros(len(x))
+    for i in range(len(x)):
+        if alpha[i] > -1:
+            lognorm[i] = h*np.exp(-np.log(2)*(np.log(1+alpha[i])/gamma)**2)
+        else:
+            lognorm[i] = 0
+    
+    return lognorm
+
+####################################
+# Fitter for polarizer calibration #
+####################################
 def fit_polarizer(res):
     # assign the linear model
     res.f = polarizer
@@ -76,6 +107,30 @@ def fit_exp(res: FitData):
 
     # calculate the integral time
     for i in range(res.n_fit):
+        norm           =  res.fitpar[i,[1,3,5]].sum()
+        res.tau_int[i] = (res.fitpar[i,1]*res.fitpar[i,2] +
+                          res.fitpar[i,3]*res.fitpar[i,4] +
+                          res.fitpar[i,5]*res.fitpar[i,6])/norm
+    
+    return res
+
+# multi-exponential model
+def multiexp(par, x):
+    exp = (par[1]*np.exp(-x/par[2]) + 
+           par[3]*np.exp(-x/par[4]) +
+           par[5]*np.exp(-x/par[6]) + par[0])
+    return exp
+
+# simple multi-exponential model
+def fit_exp_old(res: FitData):
+    # assign the exponential model
+    res.f = multiexp
+    
+    # perform the fit
+    res = fit_base(res)
+
+    # calculate the integral time
+    for i in range(res.n_fit):
         norm           =  res.fitpar[i,[2,4,6]].sum()
         res.tau_int[i] = (res.fitpar[i,2]*res.fitpar[i,3] +
                           res.fitpar[i,4]*res.fitpar[i,5] +
@@ -97,7 +152,7 @@ def fit_exp(res: FitData):
     return res
 
 # multi-exponential model
-def multiexp(par, x):
+def multiexp_old(par, x):
     exp = par[0]*(par[2]*np.exp(-x/par[3]) + 
                   par[4]*np.exp(-x/par[5]) +
                   par[6]*np.exp(-x/par[7])) + par[1]

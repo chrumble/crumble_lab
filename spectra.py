@@ -20,11 +20,8 @@ def fwhm(x, sig):
     left  = closest(0.5, sig[0:ind])
     right = closest(0.5, sig[ind:])
     
-    fwhm = x[right] - x[left]
-    
-    print(x[right])
-    print(x[left])
-    
+    fwhm = np.abs(x[right] - x[left])
+        
     return fwhm
 
 ##########################
@@ -80,10 +77,15 @@ def closest(values, x):
 ############################################
 # convert absorption spectra to wavenumber #
 ############################################
-def abs_to_freq(wave, spec, interp=True):
+def abs_to_freq(wave, spec, interp=True, lineshape=False):
     spec, n = check_dim(spec)
     
-    freq = 1e4/wave
+    # convert wavelengths into frequencies in m^-1
+    freq = 1/(wave*1e-9)
+    
+    if lineshape == True:
+        for i in range(n):
+            spec[:,i] = spec[:,i]/freq
     
     if interp:
         freq_new = np.linspace(np.min(freq), np.max(freq), len(freq))
@@ -94,6 +96,9 @@ def abs_to_freq(wave, spec, interp=True):
                                   fp=spec[:,i])
         freq = freq_new   
         
+    # put frequencies in kcm^-1
+    freq = freq*1e-5;
+        
     if n == 1:
         spec = np.squeeze(spec)
     
@@ -102,16 +107,21 @@ def abs_to_freq(wave, spec, interp=True):
 ##########################################
 # convert emission spectra to wavenumber #
 ##########################################
-def em_to_freq(wave, spec, interp=True):
+def em_to_freq(wave, spec, interp=True, lineshape=False):
     # prepare some things
     spec, n = check_dim(spec)
     
     # convert wavelengths into frequencies in m^-1
     freq = 1/(wave*1e-9)
     
-    # do the conversion
+    # do the conversion to frequency
     for i in range(n):
         spec[:,i] = 1e14*spec[:,i]/freq**2
+        
+    # continue to lineshape if specified
+    if lineshape == True:
+        for i in range(n):
+            spec[:,i] = 1e21*spec[:,i]/freq**3
         
     # resample to evenly spaced frequencies unless told not to
     if interp:
@@ -137,8 +147,7 @@ def em_to_freq(wave, spec, interp=True):
 ##############################################
 def em_corr(wave, spec):
     # prepare some things
-    corr = np.loadtxt('/home/crumble/Documents/Altoona/research/py_modules'+
-                      '/em_corr_221206.txt')
+    corr = np.loadtxt('/home/crumble/Documents/Altoona/research/crumble_lab/em_corr_221206.txt')
     spec, n = check_dim(spec)
 
     for i in range(n):
