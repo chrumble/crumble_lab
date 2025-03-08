@@ -44,18 +44,19 @@ fix   = list()
 exp1_names = ['bkg:', 'tsft:', 'a1:', 'tau1:']
 exp2_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:']
 exp3_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:', 'a3:', 'tau3:']
+exp4_names = ['bkg:', 'tsft:', 'a1:', 'tau1:', 'a2:', 'tau2:', 'a3:', 'tau3:', 'a4:', 'tau4:']
 str1_names = ['h:', 'bkg:', 'tsft:', 'tau1:', 'beta1:']
 str2_names = ['h:', 'bkg:', 'tsft:', 'a1:', 'tau1:', 'beta1:', 'a2:', 'tau2:', 'beta2:']
 
 #######################
 # residual calculator #
 #######################
-def residuals(par_enc, guess, fix, irf, data, fit_function, tstep):
+def residuals(par_enc, guess, fix, irf, x, data, fit_function):
     # unpack model parameters
     par = ft.decode_par(par_enc, guess, fix)
     
     # send to the fit generator    
-    fit, resid = conv_comp(par, irf, data, fit_function, tstep)
+    fit, resid = conv_comp(par, irf, x, data, fit_function)
     
     return resid
 
@@ -98,6 +99,23 @@ def conv_comp(par, irf, x, data, fit_function):
         fit = (a1*np.exp(-x/tau1) +
                a2*np.exp(-x/tau2) +
                a3*np.exp(-x/tau3))
+
+    elif fit_function == '4-exp':
+        bkg  = par[0]
+        tsft = par[1]
+        a1   = par[2]
+        tau1 = par[3]
+        a2   = par[4]
+        tau2 = par[5]
+        a3   = par[6]
+        tau3 = par[7]
+        a4   = par[8]
+        tau4 = par[9]
+
+        fit = (a1*np.exp(-x/tau1) +
+               a2*np.exp(-x/tau2) +
+               a3*np.exp(-x/tau3) +
+               a4*np.exp(-x/tau4))
 
     elif fit_function == '1-str':
         h     = par[0]
@@ -182,21 +200,18 @@ def fit_routine(res):
                                      1,
                                      dtype=int)]
     
-    # calculate the timestep
-    res.tstep = res.x[1]-res.x[0]
-    
     # send the information to the fitter 
     par_enc, lb_enc, ub_enc = ft.encode_par(res)
     
     result = least_squares(residuals, 
-                            par_enc, 
-                            bounds=(lb_enc, ub_enc), 
-                            args=(res.guess,
-                                  res.fix,
-                                  res.irf,
-                                  res.x,
-                                  res.data,
-                                  res.fit_function))
+                           par_enc, 
+                           bounds=(lb_enc, ub_enc), 
+                           args=(res.guess,
+                                 res.fix,
+                                 res.irf,
+                                 res.x,
+                                 res.data,
+                                 res.fit_function))
 
     
     # decode parameters
@@ -244,6 +259,12 @@ def change_model(fit_function):
         ini_ub    = np.asarray([ 1e2,    1,  1e5,  1e3,  1e5,  1e3,  1e5,  1e3])
         ini_guess = np.asarray([   1,    0,  5e2,  0.1,  1e3,    1,  5e3,    5])
         ini_lb    = np.asarray([   0,   -1, -1e5, 1e-3, -1e5, 1e-3, -1e5, 1e-3])
+    elif fit_function == '4-exp':
+        par_names = exp4_names
+                               # bkg, tsft,   a1, tau1,   a2, tau2,   a3, tau3,   a4, tau4
+        ini_ub    = np.asarray([ 1e2,    1,  1e5,  1e3,  1e5,  1e3,  1e5,  1e3,  1e5,  1e3])
+        ini_guess = np.asarray([   1,    0,  5e2,  0.1,  1e3,    1,  5e3,    5,  5e3,   10])
+        ini_lb    = np.asarray([   0,   -1, -1e5, 1e-3, -1e5, 1e-3, -1e5, 1e-3, -1e5, 1e-3])
     elif fit_function == '1-str':
         par_names = str1_names
         ini_ub    = np.asarray([1e5,  1e2,  1, 1e5,  1])
@@ -318,6 +339,8 @@ def perform_fit():
         res.par_names = exp2_names
     elif res.fit_function == '3-exp':
         res.par_names = exp3_names
+    elif res.fit_function == '4-exp':
+        res.par_names = exp4_names
     elif res.fit_function == '1-str':
         res.par_names = str1_names
     elif res.fit_function == '2-str':
@@ -362,7 +385,7 @@ def perform_fit():
     result_window = tk.Toplevel()
     result_window.title(r'%s Fit Result (chi_sq = %.3f)' % (res.fit_function,
                                                             res.chi_sq))
-    result_window.geometry('600x750')
+    result_window.geometry('600x800')
 
     fig = Figure()
     ax  = fig.subplots(nrows=2, ncols=1, sharex=True, gridspec_kw={'height_ratios' : [1,5]})
@@ -402,9 +425,12 @@ def perform_fit():
 
     # spit out some text
     text = tk.Text(result_window)
+#    text = tk.Text(result_window, font=('TkTextFont', 8))
     text.pack(fill=tk.BOTH, expand=True)
     
     # output the fit parameters
+    text.insert(tk.END, 'Fl. File: %s\n' % res.fl_file.split('/')[-1])
+    text.insert(tk.END, 'IRF File: %s\n\n' % res.irf_file.split('/')[-1])
     text.insert(tk.END, '%s fit results:\n\n' % res.fit_function)
     if res.fit_function   == '1-exp':
         text.insert(tk.END, 'I(t) = a1*exp(-t/tau1) + bkg (and tsft)\n\n')
@@ -412,6 +438,8 @@ def perform_fit():
         text.insert(tk.END, 'I(t) = a1*exp(-t/tau1) + a2*exp(-t/tau2) + bkg (and tsft)\n\n')
     elif res.fit_function == '3-exp':
         text.insert(tk.END, 'I(t) = a1*exp(-t/tau1) + a2*exp(-t/tau2) + a3*exp(-t/tau3) + bkg (and tsft)\n\n')
+    elif res.fit_function == '4-exp':
+        text.insert(tk.END, 'I(t) = a1*exp(-t/tau1) + a2*exp(-t/tau2) + a3*exp(-t/tau3) + a4*exp(-t/tau4) + bkg (and tsft)\n\n')
     elif res.fit_function == '1-str':
         text.insert(tk.END, 'I(t) = h*exp(-[t/tau1]**beta1) + bkg (and tsft)\n\n')
     elif res.fit_function == '2-str':
@@ -428,9 +456,8 @@ def perform_fit():
 
     # write out some easy to copy text
     for i in range(n_par):
-        text.insert(tk.END, '{:<10.3f}'.format(res.fitpar[i]))
-    text.insert(tk.END, '{:<10.3f}'.format(res.chi_sq))
-
+        text.insert(tk.END, '{:<11.3f}'.format(res.fitpar[i]))
+    text.insert(tk.END, '{:<11.3f}'.format(res.chi_sq))
 
     # make the box un-editable
     text['state'] = 'disabled'
@@ -472,14 +499,14 @@ file_widgets = list()
 # fluorescence file
 ttk.Label(frm_files, text='Fl. File:').grid(column=0, row=1, pady=2)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/tcspc/conv_comp/C153_MeOH_400ex_520em.asc')
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/tcspc/c153/250220/peoh/c153_peoh_520nm_mag.asc')
 file_widgets[-1].grid(column=1, row=1, padx=5, columnspan=4, sticky='ew')
 ttk.Button(frm_files, text='Select', command=get_fl_filename).grid(column=5, row=1)
 
 # fluorescence range
 ttk.Label(frm_files, text='Fl. Range:').grid(column=0, row=3, pady=2)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '100')
+file_widgets[-1].insert(tk.END, '175')
 file_widgets[-1].grid(column=1, row=3, pady=2)
 file_widgets.append(ttk.Entry(frm_files))
 file_widgets[-1].insert(tk.END, '3750')
@@ -488,21 +515,21 @@ file_widgets[-1].grid(column=2, row=3, pady=2)
 # irf file
 ttk.Label(frm_files, text='IRF File:').grid(column=0, row=4, pady=2)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/tcspc/conv_comp/irf_400ex_400em_6-11ps.asc')
+file_widgets[-1].insert(tk.END, '/home/crumble/Documents/Altoona/research/tcspc/c153/250220/peoh/irf_400nm.asc')
 file_widgets[-1].grid(column=1, row=4, padx=5, columnspan=4, sticky='ew')
 ttk.Button(frm_files, text='Select', command=get_irf_filename).grid(column=5, row=4)
 
 # irf range
 ttk.Label(frm_files, text='IRF Range:').grid(column=0, row=5, pady=2)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '100')
+file_widgets[-1].insert(tk.END, '175')
 file_widgets[-1].grid(column=1, row=5, pady=2)
 file_widgets.append(ttk.Entry(frm_files))
-file_widgets[-1].insert(tk.END, '400')
+file_widgets[-1].insert(tk.END, '300')
 file_widgets[-1].grid(column=2, row=5, pady=2)
 
 # fit function selector
-model_functions = ['1-exp', '2-exp', '3-exp', '1-str', '2-str']
+model_functions = ['1-exp', '2-exp', '3-exp', '4-exp', '1-str', '2-str']
 selected_model = tk.StringVar()
 selected_model.set(model_functions[0])
 ttk.Label(frm_files, text='Model function:').grid(column=0, row=6)
